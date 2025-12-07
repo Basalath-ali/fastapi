@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: fastapi-app
-        image: basalath7ali/fastapi-app:latest
+        image: ghcr.io/basalath-ali/fastapi:latest
         ports:
         - containerPort: 80
         env:
@@ -42,4 +42,4 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       imagePullSecrets:
-      - name: dockerhub-secret
+      - name: ghcr-secret
