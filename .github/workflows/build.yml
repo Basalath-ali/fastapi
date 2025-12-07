@@ -90,12 +90,12 @@ jobs:
         run: |
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Create GitHub Container Registry secret
+      - name: Create Docker registry secret
         run: |
-          kubectl create secret docker-registry ghcr-secret \
-            --docker-server=${{ env.REGISTRY }} \
-            --docker-username=${{ github.actor }} \
-            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+          kubectl create secret docker-registry dockerhub-secret \
+            --docker-server=docker.io \
+            --docker-username=${{ secrets.DOCKER_USERNAME }} \
+            --docker-password=${{ secrets.DOCKER_PASSWORD }} \
             --namespace=${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
@@ -107,11 +107,8 @@ jobs:
             k8s/deployment.yaml
             k8s/service.yaml
           images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
           imagepullsecrets: |
-            ghcr-secret
+            dockerhub-secret
 
-      - name: Get service endpoint
-        run: |
-          echo "Waiting for external IP..."
-          kubectl get service ${{ env.DEPLOYMENT_NAME }}-service -n ${{ env.NAMESPACE }}
+     
