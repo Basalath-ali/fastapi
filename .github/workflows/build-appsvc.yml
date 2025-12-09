@@ -106,5 +106,6 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
           imagepullsecrets: |
             dockerhub-secret
+            
 
      
