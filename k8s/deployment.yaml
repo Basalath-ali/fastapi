@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: fastapi-app
-          image: basalath7ali/fastapi-app:latest
+          image: basalath7ali/fastapi-app
           ports:
             - containerPort: 8000       # Match your FastAPI app port
           env:
