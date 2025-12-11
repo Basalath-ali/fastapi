@@ -15,6 +15,7 @@ spec:
         app: fastapi-app
     spec:
       containers:
+<<<<<<< HEAD
       - name: fastapi-app
         image: basalath7ali/fastapi-app
 
@@ -42,5 +43,35 @@ spec:
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
+=======
+        - name: fastapi-app
+          image: basalath7ali/fastapi-app
+          ports:
+            - containerPort: 8000       # Match your FastAPI app port
+          env:
+            - name: PORT
+              value: "8000"            # Match the port
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+>>>>>>> 42f4266cc35effbee1e49495ae9b88bf1a896e35
       imagePullSecrets:
-      - name: ghcr-secret
+        - name: dockerhub-secret

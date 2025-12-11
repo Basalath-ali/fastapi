@@ -100,6 +100,7 @@ jobs:
             --namespace=${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
+<<<<<<< HEAD
       - name: Deploy to AKS using Helm
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
@@ -129,3 +130,16 @@ jobs:
             
 
      
+=======
+      - name: Deploy to AKS
+        uses: azure/k8s-deploy@v4
+        with:
+          namespace: ${{ env.NAMESPACE }}
+          manifests: |
+            k8s/deployment.yaml
+            k8s/service.yaml
+          images: |
+            ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image-tag }}
+          imagepullsecrets: |
+            dockerhub-secret
+>>>>>>> 42f4266cc35effbee1e49495ae9b88bf1a896e35
