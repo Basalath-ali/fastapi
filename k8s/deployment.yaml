@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: fastapi-app
-        image: ghcr.io/basalath-ali/fastapi:latest
+        image: basalath7ali/fastapi-app
+
         ports:
         - containerPort: 80
         env:

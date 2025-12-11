@@ -82,6 +82,11 @@ jobs:
           resource-group: ${{ env.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ env.AKS_CLUSTER_NAME }}
 
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+
       - name: Create namespace if not exists
         run: |
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
@@ -95,17 +100,32 @@ jobs:
             --namespace=${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Deploy to AKS
-        uses: azure/k8s-deploy@v4
-        with:
-          namespace: ${{ env.NAMESPACE }}
-          manifests: |
-            k8s/deployment.yaml
-            k8s/service.yaml
-          images: |
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          imagepullsecrets: |
-            dockerhub-secret
+      - name: Deploy to AKS using Helm
+        run: |
+          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+
+          helm upgrade --install ${{ env.DEPLOYMENT_NAME }} ./fastapi-charts \
+            --namespace ${{ env.NAMESPACE }} \
+            --create-namespace \
+            --set image.repository=${{ env.IMAGE_NAME }} \
+            --set image.tag=${IMAGE_TAG} \
+            --set image.pullPolicy=Always \
+            --set imagePullSecrets[0].name=dockerhub-secret \
+            --wait \
+            --timeout 5m
+
+      - name: Get deployment status
+        run: |
+          echo "=== Helm Release Status ==="
+          helm status ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+
+          echo ""
+          echo "=== Pods ==="
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/name=fastapi-charts
+
+          echo ""
+          echo "=== Services ==="
+          kubectl get svc -n ${{ env.NAMESPACE }} -l app.kubernetes.io/name=fastapi-charts
             
 
      
