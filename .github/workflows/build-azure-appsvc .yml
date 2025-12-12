@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v1
         with:
           publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
