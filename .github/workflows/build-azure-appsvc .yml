@@ -13,6 +13,7 @@ env:
   AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
 jobs:
+
   build-and-push:
     name: Build and Push Image
     runs-on: ubuntu-latest
@@ -37,7 +38,8 @@ jobs:
 
       - name: Set Image Tag Output
         id: image-tag
-        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+        run: |
+          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
 
   deploy:
@@ -49,10 +51,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # ❗ NO azure/login HERE — publish profile only works in webapps-deploy
-      - name: Deploy to Azure Web App (Docker Container)
+      - name: Deploy Docker Image to Azure App Service
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.APP_SERVICE_NAME }}
           publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          images: docker.io/${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.tag }}
+          images: docker.io/${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
