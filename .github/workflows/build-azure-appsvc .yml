@@ -1,109 +1,63 @@
-name: Build and Deploy to Azure App Service
+name: Build and Deploy Docker to Azure App Service
 
 on:
   push:
     branches:
       - azure-app-service
-  pull_request:
-    branches:
-      - azure-app-service
-  workflow_dispatch:
+      
 
 env:
-  REGISTRY: docker.io
-  IMAGE_NAME: basalath7ali/fastapi-app
-  AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+  IMAGE_NAME: fastapi-app
+  APP_SERVICE_NAME: fastapi-docker-app
+  RESOURCE_GROUP: fastapi-rg
+  AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
 jobs:
   build-and-push:
+    name: Build and Push Image
     runs-on: ubuntu-latest
-    outputs:
-      image-tag: ${{ steps.meta.outputs.version }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_PASSWORD }}
 
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Build Docker Image
+        run: |
+          docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }} .
+      
+      - name: Push Docker Image
+        run: |
+          docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set Image Tag Output
+        id: image-tag
+        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
-  deploy-to-app-service:
-    needs: build-and-push
+  deploy:
+    name: Deploy to Azure App Service
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    environment: production
+    needs: build-and-push
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Download Artifact
+        uses: actions/checkout@v3
 
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
-      - name: Deploy to Azure App Service
+      - name: Configure Web App to use Docker Image
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          images: ${{ env.IMAGE_NAME }}:latest
-
-      - name: Get App Service URL
-        run: |
-          echo "=== Deployment Information ==="
-          echo "App Service Name: ${{ env.AZURE_WEBAPP_NAME }}"
-          echo "Image: ${{ env.IMAGE_NAME }}:latest"
-          echo "Application URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-
-      - name: Verify deployment
-        run: |
-          echo "Waiting for app to be ready..."
-          sleep 30
-
-          URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" $URL)
-
-          if [ $STATUS -eq 200 ]; then
-            echo "✅ App Service is healthy (HTTP $STATUS)"
-          else
-            echo "⚠️ App Service returned HTTP $STATUS"
-          fi
-
-      - name: Send deployment notification
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment to Azure App Service successful!"
-            echo "Application available at: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-          else
-            echo "❌ Deployment to Azure App Service failed!"
-          fi
+          app-name: ${{ env.APP_SERVICE_NAME }}
+          images: docker.io/${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
