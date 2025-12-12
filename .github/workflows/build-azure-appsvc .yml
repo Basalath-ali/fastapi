@@ -10,7 +10,7 @@ env:
   DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
   IMAGE_NAME: fastapi-app
   APP_SERVICE_NAME: my-fast-api
-  RESOURCE_GROUP: ali-rg
+  RESOURCE_GROUP: fastapi-rg
   AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
 jobs:
@@ -28,14 +28,12 @@ jobs:
           password: ${{ env.DOCKER_HUB_PASSWORD }}
 
       - name: Build Docker Image
-        run: |
-          docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }} .
+        run: docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }} .
 
       - name: Push Docker Image
-        run: |
-          docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }}
+        run: docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }}
 
-      - name: Set Image Tag Output
+      - name: Set Image Tag
         id: image-tag
         run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
@@ -53,7 +51,7 @@ jobs:
         with:
           publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
-      - name: Deploy Docker Image to App Service
+      - name: Deploy to Azure App Service (Docker)
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.APP_SERVICE_NAME }}
