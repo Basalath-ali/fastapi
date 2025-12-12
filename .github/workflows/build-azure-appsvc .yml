@@ -4,14 +4,12 @@ on:
   push:
     branches:
       - azure-app-service
-      
 
 env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
   IMAGE_NAME: fastapi-app
   APP_SERVICE_NAME: fastapi-docker-app
-  RESOURCE_GROUP: fastapi-rg
   AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
 
 jobs:
@@ -32,7 +30,7 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }} .
-      
+
       - name: Push Docker Image
         run: |
           docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ github.sha }}
@@ -48,17 +46,13 @@ jobs:
     needs: build-and-push
 
     steps:
-      - name: Download Artifact
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
-
-      - name: Configure Web App to use Docker Image
+      # ❗ NO azure/login HERE — publish profile only works in webapps-deploy
+      - name: Deploy to Azure Web App (Docker Container)
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.APP_SERVICE_NAME }}
-          images: docker.io/${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
-          
+          publish-profile: ${{ env.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: docker.io/${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.tag }}
