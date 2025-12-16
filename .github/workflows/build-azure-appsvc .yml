@@ -1,24 +1,16 @@
-name: Build & Deploy FastAPI to Azure App Service
+name: Build & Deploy to App Service (ACR)
 
 on:
   push:
-    branches:
-      - azure-app-service
+    branches: [ azure-app-service ]
 
 jobs:
-  build-and-deploy:
-    runs-on: self-hosted   # 👈 IMPORTANT
-
-    env:
-      IMAGE_NAME: fastapi-app
-      APP_SERVICE_NAME: my-fast-api
-      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+  deploy:
+    runs-on: self-hosted
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 🔐 Azure Login (Service Principal)
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -26,20 +18,15 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # 🔐 Login to ACR
-      - name: Login to Azure Container Registry
+      - name: Login to ACR
         run: |
-          docker login $ACR_LOGIN_SERVER \
-            -u ${{ secrets.ACR_USERNAME }} \
-            -p ${{ secrets.ACR_PASSWORD }}
+          az acr login --name ${{ secrets.ACR_NAME }}
 
-      # 🐳 Build & Push Image
-      - name: Build and Push Image
+      - name: Build & Push Image
         run: |
-          docker build -t $ACR_LOGIN_SERVER/fastapi-app:latest .
-          docker push $ACR_LOGIN_SERVER/fastapi-app:latest
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-app:latest .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-app:latest
 
-      # 🚀 Deploy to Azure App Service
       - name: Deploy to App Service
         uses: azure/webapps-deploy@v2
         with:
