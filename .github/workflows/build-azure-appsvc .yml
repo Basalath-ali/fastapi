@@ -1,0 +1,41 @@
+name: Build & Deploy to App Service (ACR)
+
+on:
+  push:
+    branches:
+      - azure-app-service
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 🔐 Azure Login (USING AZURE_CREDENTIALS JSON)
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 🔐 Login to Azure Container Registry
+      - name: Login to ACR
+        run: |
+          az acr login --name ${{ secrets.ACR_USERNAME }}
+
+      # 🐳 Build & Push Docker Image
+      - name: Build & Push Image
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-app:latest .
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-app:latest
+
+      # 🚀 Deploy to Azure App Service
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: my-fast-api
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-app:latest
