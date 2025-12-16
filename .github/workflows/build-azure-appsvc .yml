@@ -32,4 +32,4 @@ jobs:
         with:
           app-name: my-fast-api
           images: ${{ secrets.ACR_LOGIN_SERVER }}/fastapi-app:latest
-          #
+          
