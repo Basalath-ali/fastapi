@@ -25,7 +25,7 @@ jobs:
       # 🔐 Login to Azure Container Registry
       - name: Login to ACR
         run: |
-          az acr login --name ${{ secrets.ACR_NAME }}
+          az acr login --name ${{ secrets.ACR_USERNAME }}
 
       # 🐳 Build & Push Docker Image
       - name: Build & Push Image
