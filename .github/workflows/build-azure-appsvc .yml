@@ -2,7 +2,7 @@ name: Build & Deploy to App Service (ACR)
 
 on:
   push:
-    branches: [ azure-app-service ]
+    branches:  azure-app-service 
 
 jobs:
   deploy:
